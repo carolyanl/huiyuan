@@ -600,11 +600,11 @@ const CLUES={
  C13:{k:'C',rule:'folk',sum:'红纸：六月十五以前　芦坪添一口'},
  C14:{k:'C',rule:'folk',sum:'童谣：月儿圆，烧三炷……'},
  R01:{k:'R',sum:'郑老三：同一天配的两头照常怀着'},
- R02:{k:'R',sum:'郑老三：前年一头下了十六只'},
+ R02:{k:'R',rare:true,sum:'郑老三：前年一头下了十六只'},
  R03:{k:'R',sum:'诊籍：十人皆有呕恶、乏力'},
- R04:{k:'R',sum:'诊籍：春桃产程仅一个时辰'},
+ R04:{k:'R',rare:true,sum:'诊籍：春桃产程仅一个时辰'},
  R05:{k:'R',sum:'诊籍：婴孩眉目颇肖李家小子'},
- R07:{k:'R',sum:'剪报：双生子降生相隔二十三日'},
+ R07:{k:'R',rare:true,sum:'剪报：双生子降生相隔二十三日'},
  R08:{k:'R',sum:'郑老三：一样的猪一样的圈，那两头偏不闹'},
  R09:{k:'R',sum:'郑老三：西街王家的猫照常下崽'},
  R10:{k:'R',sum:'客栈：半夜床板轻轻晃了一下'},
@@ -1086,8 +1086,8 @@ function rEnding(){
   h+=`<p>我把它剪下来，钉在墙上，钉在双胞胎那张剪报的旁边。说不上为什么，只是觉得该钉在那儿。</p>`;
   h+=`<div class="sys">线索墙新增了本案的主线线索。</div>`;
   h+=`<p>桌上压着一封新到的信，邮戳是邻县的。信封上写着：季白先生亲启，急。</p>`;
-  const valid=Object.values(state.cards).filter(c=>c.ok).length;
-  h+=`<div class="end"><span class="seal s-closed" aria-hidden="true"></span><h3>第一章完</h3><p class="note">违和卡 ${valid} 张有效 · 规则簿提交 ${state.rb.tries} 次 · 名声 ${state.fame}</p><button class="btn" data-act="restart">重新开始</button></div>`;
+  const valid=Object.values(state.cards).filter(c=>c.ok&&c.rule!=='rare').length,rareN=Object.values(state.cards).filter(c=>c.ok&&c.rule==='rare').length;
+  h+=`<div class="end"><span class="seal s-closed" aria-hidden="true"></span><h3>第一章完</h3><p class="note">违和卡 ${valid} 张有效${rareN?` · 罕见之事 ${rareN} 条`:''} · 规则簿提交 ${state.rb.tries} 次 · 名声 ${state.fame}</p><button class="btn" data-act="restart">重新开始</button></div>`;
   return h}
 
 function rDict(){
@@ -1276,7 +1276,7 @@ function openMark(sid,txt,re){
   const c=state.cards[sid];const pick=!c||re;
   let h=`<div class="scrim" data-close="1"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mh"><h4 id="mh">${re?'重新选择标记':c?'这张卡':'标记违和'}</h4><div class="quote">${esc(txt)}</div>`;
   if(!pick)h+=`<div class="opts"><button class="btn" data-remark="${sid}" data-txt="${esc(txt).replace(/"/g,'&quot;')}">重新选择标记</button><button class="btn" data-unmark="${sid}">撤下这张卡</button><button class="btn ghost" data-close="1">取消</button></div>`;
-  else h+=`<p class="note" style="margin:0 0 8px">${re?'现在记为“'+RULE_NAME[c.rule]+'”。改记为哪一条？':'它违背了哪一条？'}</p><div class="opts">${DICT.filter(d=>d.mark&&(state.dict||[]).includes(d.id)).length?'':'<p class="note" style="margin:0">辞典里还没有可以对照的法则。先在文中点加粗的法则名，把它收进辞典。</p>'}${DICT.filter(d=>d.mark&&(state.dict||[]).includes(d.id)).map(d=>`<button class="btn" data-mark="${sid}" data-rule="${d.id}" ${re&&c.rule===d.id?'disabled':''}>${d.name}</button>`).join('')}<button class="btn" data-mark="${sid}" data-rule="folk" ${re&&c.rule==='folk'?'disabled':''}>不违背法则，记为民俗痕迹</button><button class="btn ghost" data-close="1">取消</button></div>`;
+  else h+=`<p class="note" style="margin:0 0 8px">${re?'现在记为“'+RULE_NAME[c.rule]+'”。改记为哪一条？':'它违背了哪一条？'}</p><div class="opts">${DICT.filter(d=>d.mark&&(state.dict||[]).includes(d.id)).length?'':'<p class="note" style="margin:0">辞典里还没有可以对照的法则。先在文中点加粗的法则名，把它收进辞典。</p>'}${DICT.filter(d=>d.mark&&(state.dict||[]).includes(d.id)).map(d=>`<button class="btn" data-mark="${sid}" data-rule="${d.id}" ${re&&c.rule===d.id?'disabled':''}>${d.name}</button>`).join('')}<button class="btn" data-mark="${sid}" data-rule="folk" ${re&&c.rule==='folk'?'disabled':''}>不违背法则，记为民俗痕迹</button>${(state.dict||[]).includes('rare')?`<button class="btn" data-mark="${sid}" data-rule="rare" ${re&&c.rule==='rare'?'disabled':''}>少见，但合乎常理：记为罕见之事</button>`:''}<button class="btn ghost" data-close="1">取消</button></div>`;
   h+='</div></div>';$('#layer').innerHTML=h;const b=$('#layer .opts .btn');if(b)b.focus()}
 function closeModal(){$('#layer').innerHTML=''}
 /* 按住类按钮走完时页面会立刻换内容；手指还按在屏幕上，松开时手机会把一次「点击」落到新内容上（例如误开一张违和卡）。
@@ -1315,7 +1315,7 @@ function sourceOf(id){const c=state.cards[id];if(c&&c.scene&&SCENES[c.scene])ret
   const open=SCENE_ORDER.filter(s=>state.unlocked.includes(s));
   return open.find(s=>JSON.stringify(SCENES[s].blocks).includes('[['+id+'|'))||open.find(s=>JSON.stringify(SCENES[s].blocks).includes('"'+id+'"'))}
 function openCard(id){const c=state.cards[id];if(!c)return;state.cardOpened=true;save();const cl=CLUES[id];
-  $('#layer').innerHTML=`<div class="scrim" data-close="1"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="ch"><h4 id="ch">${c.ok?'违和卡':'存疑的卡'}${c.ok?'':'<span class="seal s-doubt" aria-hidden="true"></span>'}</h4><div class="quote">${esc(cl?cl.sum:id)}</div><p class="note" style="margin:0 0 10px">${c.ok?'记为：'+RULE_NAME[c.rule]:'你记为“'+RULE_NAME[c.rule]+'”，但对不上。'}</p><div class="opts"><button class="btn primary" data-src="${id}">回到原文出处</button><button class="btn" data-remark="${id}" data-txt="${esc(cl?cl.sum:id).replace(/"/g,'&quot;')}">重新选择标记</button><button class="btn" data-unmark="${id}">撤下这张卡</button><button class="btn ghost" data-close="1">取消</button></div></div></div>`;
+  $('#layer').innerHTML=`<div class="scrim" data-close="1"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="ch"><h4 id="ch">${c.ok?(c.rule==='rare'?'罕见之事':'违和卡'):'存疑的卡'}${c.ok?'':'<span class="seal s-doubt" aria-hidden="true"></span>'}</h4><div class="quote">${esc(cl?cl.sum:id)}</div><p class="note" style="margin:0 0 10px">${c.ok?'记为：'+RULE_NAME[c.rule]:'你记为“'+RULE_NAME[c.rule]+'”，但对不上。'}</p><div class="opts"><button class="btn primary" data-src="${id}">回到原文出处</button><button class="btn" data-remark="${id}" data-txt="${esc(cl?cl.sum:id).replace(/"/g,'&quot;')}">重新选择标记</button><button class="btn" data-unmark="${id}">撤下这张卡</button><button class="btn ghost" data-close="1">取消</button></div></div></div>`;
   const b=$('#layer .opts .btn');if(b)b.focus()}
 function goSource(id){const c=state.cards[id];
   if(c&&c.spot&&SPOTS[c.spot]){state.tab='map';state.mapView='village';state.spot=c.spot}
@@ -1327,10 +1327,10 @@ function goSource(id){const c=state.cards[id];
 function doMark(sid,rule){
   closeModal();const cl=CLUES[sid];
   if(!cl){toast('这句话放进哪条法则都对不上，没有记录。');return}
-  const ok=cl.k==='C'&&cl.rule===rule;
+  const ok=rule==='rare'?!!cl.rare:(cl.k==='C'&&cl.rule===rule);
   const prev=state.cards[sid];
   state.cards[sid]=prev?Object.assign({},prev,{rule,ok}):state.tab==='map'&&state.spot?{rule,ok,spot:state.spot}:{rule,ok,scene:state.scene};state.railTab=ok?'ok':'doubt';
-  toast(ok?'违和卡已记下。':'记下了，但这张卡对不上，标为存疑。');
+  toast(ok?(rule==='rare'?'记下了：少见，但合乎常理。':'违和卡已记下。'):'记下了，但这张卡对不上，标为存疑。');
   save();render()}
 function unmark(id){closeModal();delete state.cards[id];save();render()}
 
