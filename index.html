@@ -560,7 +560,7 @@ button.card:hover{background:none;filter:var(--art-dim) brightness(1.04)}
     <div class="rail-box"><h3>违和卡 <small id="cardCount"></small></h3><div class="seg" id="cardTabs" role="group" aria-label="违和卡分类"></div><div class="cards" id="cards"></div></div>
     <div class="rail-box"><h3>证词</h3><div id="testis"></div></div>
   </aside>
-  <footer><span>点选文中的句子即可标记违和。进度自动保存在本机浏览器。</span><label class="debug"><input type="checkbox" id="dbg"> 调试：显示隐藏变量</label><span id="dbgOut" class="debug"></span></footer>
+  <footer><span>点选文中的句子即可标记违和。进度自动保存在本机浏览器。</span></footer>
 </div>
 <div id="layer"></div>
 <div id="menu" hidden role="dialog" aria-modal="true" aria-label="主界面"></div>
@@ -1270,7 +1270,7 @@ function rRail(){
     const cls=c.rule==='folk'&&c.ok?'folk':(c.ok?'':'doubt');
     return `<button class="card ${cls}" data-card="${id}"><span class="tag">${c.ok?RULE_NAME[c.rule]:'存疑'}</span>${esc(sum)}</button>`}).join(''):(ids.length?`<p class="empty">${rt==='ok'?'还没有对得上的卡。':'没有存疑的卡。'}</p>`:'<p class="empty">还没有违和卡。在案卷里点一句不对劲的话。</p>');
   $('#testis').innerHTML=state.testis.length?state.testis.map(k=>`<p class="testi">${esc(TESTI[k])}</p>`).join(''):'<p class="empty">盘问中的关键证词会记在这里。</p>'}
-function rDebug(){const on=$('#dbg').checked;$('#dbgOut').textContent=on?`早产压力 ${state.pressure} · 心智缝隙 ${state.gap} · 撕裂区 ${state.tears} · 知情者 ${state.knowers.join('、')||'无'}`:''}
+function rDebug(){if(!$('#dbg'))return;const on=$('#dbg').checked;$('#dbgOut').textContent=on?`早产压力 ${state.pressure} · 心智缝隙 ${state.gap} · 撕裂区 ${state.tears} · 知情者 ${state.knowers.join('、')||'无'}`:''}
 
 /* ================= 标记 ================= */
 function openMark(sid,txt,re){
