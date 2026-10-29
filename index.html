@@ -18,7 +18,8 @@
 #boot{--b-bg:#ece7da;--b-ink:#1f2328;--b-soft:#6b6f72;--b-cin:#ad3a29;position:fixed;inset:0;z-index:200;background:var(--b-bg);color:var(--b-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:24px 16px;transition:opacity .7s ease}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #boot{--b-bg:#12161b;--b-ink:#e6e2d6;--b-soft:#a3a69f;--b-cin:#e2735f}}
 :root[data-theme="dark"] #boot{--b-bg:#12161b;--b-ink:#e6e2d6;--b-soft:#a3a69f;--b-cin:#e2735f}
-#boot.done{opacity:0;pointer-events:none}
+#boot.leaving>*{opacity:0!important;transition:opacity .35s ease}
+#boot.done{opacity:0;pointer-events:none;transition:opacity .5s ease}
 /* 进主界面之前、主界面打开时，游戏界面一律不显示 */
 html.in-menu #app,html.in-menu #guideSlot{visibility:hidden}
 #boot svg{width:min(140px,36vw);height:auto;overflow:visible}
@@ -28,7 +29,7 @@ html.in-menu #app,html.in-menu #guideSlot{visibility:hidden}
 #boot .b-dot{fill:var(--b-cin)}
 #boot .b-core{fill:var(--b-ink);opacity:.75}
 @keyframes b-turn{to{transform:rotate(360deg)}}
-#boot .b-quote{margin:0;font-family:"Noto Serif SC","Songti SC","SimSun",serif;font-size:clamp(1rem,2.6vw,1.22rem);letter-spacing:.18em;text-align:center;min-height:1.8em;line-height:1.8;transition:opacity .7s ease}
+#boot .b-quote{margin:0;font-family:"Noto Serif SC","Songti SC","SimSun",serif;font-size:clamp(1rem,2.6vw,1.22rem);letter-spacing:.18em;text-align:center;min-height:1.8em;line-height:1.8;transition:opacity .8s ease}
 #boot .b-pct{font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:.74rem;letter-spacing:.24em;color:var(--b-soft);font-variant-numeric:tabular-nums}
 @media (prefers-reduced-motion: reduce){#boot .b-hand{animation:none}#boot .b-arc,#boot .b-quote{transition:none}}
 </style>
@@ -44,9 +45,9 @@ html.in-menu #app,html.in-menu #guideSlot{visibility:hidden}
   var arc=document.getElementById('bArc'),pct=document.getElementById('bPct'),q=document.getElementById('bQuote');
   var B=window.BOOT={t0:Date.now(),cur:0,real:false,
     set:function(p){p=Math.max(B.cur,Math.min(100,p));B.cur=p;arc.setAttribute('stroke-dashoffset',String(100-p));pct.textContent=Math.round(p)+'%'},
-    stop:function(){clearInterval(B.qt)}};
+    stop:function(){clearTimeout(B.qt)}};
   (function creep(){if(B.real||!document.getElementById('boot'))return;B.set(B.cur+(40-B.cur)*0.03);requestAnimationFrame(creep)})();
-  B.qt=setInterval(function(){q.style.opacity=0;setTimeout(function(){qi=1-qi;q.textContent=Q[qi];q.style.opacity=1},700)},3400);
+  (function cycle(){B.qt=setTimeout(function(){q.style.opacity=0;B.qt=setTimeout(function(){qi=1-qi;q.textContent=Q[qi];q.style.opacity=1;cycle()},800)},5200)})();
 })();
 </script>
 <style>
@@ -1457,7 +1458,7 @@ function bootLoad(){const B=window.BOOT,boot=document.getElementById('boot');if(
   const minT=new Promise(r=>setTimeout(r,Math.max(0,3000-(Date.now()-B.t0))));
   const cap=new Promise(r=>setTimeout(r,12000));
   Promise.race([Promise.all([Promise.all(tasks),minT]),cap]).then(()=>{B.set(100);
-    setTimeout(()=>{B.stop();showMenu();boot.classList.add('done');setTimeout(()=>boot.remove(),800)},450)})}
+    setTimeout(()=>{B.stop();boot.classList.add('leaving');setTimeout(()=>{showMenu();boot.classList.add('done');setTimeout(()=>boot.remove(),900)},400)},450)})}
 function hasProgress(){return state.scene!=='P1'||Object.keys(state.cards||{}).length>0||(state.dict||[]).length>0||(state.unlocked||[]).length>1}
 function showMenu(fade){const m=$('#menu');if(!m)return;m.classList.toggle('fade',!!fade);const has=hasProgress();const sc=SCENES[state.scene];
   m.innerHTML=`<div class="m-wrap"><h1 class="m-title logo-h"><span class="sr">回愿</span></h1><div class="m-line"></div><p class="m-sub">选择章节</p><div class="m-list">
