@@ -1095,8 +1095,8 @@ const FOLK_IDS=['C12','C13','C14','C15'];
 function folkCount(){return FOLK_IDS.filter(hasValid).length}
 function rSentence(sel){const d=DICT.find(x=>x.id==='birth');let i=0;
   return d.text.replace(/\{(.+?)\}/g,(m,w)=>{const k=d.slots[i++][0];return sel?`<span class="slot${k===sel?' rit-on':''}">${w}</span>`:`<button class="rslot" data-rslot="${k}">${w}</button>`})}
-const RIT_NOW={qty:'十名',time:'一个月'};
-const RIT_VALS={qty:['一名','两名','十名'],time:['该物种的完整孕期','十个月','一个月']};
+const RIT_NOW={qty:'数名',time:'一个月'};
+const RIT_VALS={qty:['一名','两名','数名'],time:['该物种的完整孕期','十个月','一个月']};
 function rRitNow(){const d=DICT.find(x=>x.id==='birth');let i=0;
   return d.text.replace(/\{(.+?)\}/g,(m,w)=>{const k=d.slots[i++][0];const v=state.ritSlot===k&&state.ritVal?state.ritVal:(RIT_NOW[k]||w);
     return `<button class="rslot${state.ritSlot===k?' rit-on':''}" data-rslot="${k}">${v}</button>`})}
