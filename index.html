@@ -544,6 +544,44 @@ button.card:hover{background:none;filter:var(--art-dim) brightness(1.04)}
 .hsvg.peek .hpoly .hp-hit{fill:rgba(255,236,170,.14)}
 @media (prefers-reduced-motion: reduce){.hsvg.peek .hpoly .hp-line{filter:none}}
 </style>
+<style id="sound">
+/* ===== 声音开关（10-29）：「声」字印章，关为朱文、开为白文；面板里音乐、音效分开勾选，默认都不勾 ===== */
+:root{--snd-seal:#c43426;--snd-seal-ink:#f6f1e6;--snd-shadow:rgba(31,35,40,.18)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--snd-seal:#d4483a;--snd-seal-ink:#f6f1e6;--snd-shadow:rgba(0,0,0,.5)}}
+:root[data-theme="dark"]{--snd-seal:#d4483a;--snd-seal-ink:#f6f1e6;--snd-shadow:rgba(0,0,0,.5)}
+#snd{position:relative;display:flex;align-items:center;gap:8px;font-family:var(--f-ui);line-height:1.4}
+#snd.snd--menu{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));z-index:3}
+.snd-cap{display:none;border:0;background:none;color:var(--ink-soft);font-size:.92rem;letter-spacing:.08em;padding:4px 2px;cursor:pointer}
+.snd-cap:hover{color:var(--ink)}
+#snd.snd--menu .snd-cap{display:inline-block}
+.snd-seal{width:30px;height:30px;padding:0;border:0;background:none;cursor:pointer;flex:none;transform:rotate(-4deg);transition:transform .15s}
+#snd.snd--menu .snd-seal{width:40px;height:40px}
+.snd-seal:hover{transform:rotate(-4deg) scale(1.07)}
+.snd-seal:focus-visible,.snd-cap:focus-visible{outline:2px solid var(--snd-seal);outline-offset:3px}
+.snd-seal svg{display:block;width:100%;height:100%}
+.snd-seal .sf{fill:none;stroke:var(--snd-seal);stroke-width:2.6}
+.snd-seal .si{fill:none;stroke:var(--snd-seal);stroke-width:.8;opacity:.6}
+.snd-seal text{fill:var(--snd-seal);font-family:var(--f-display);font-weight:700;font-size:23px}
+#snd[data-on="true"] .snd-seal .sf{fill:var(--snd-seal)}
+#snd[data-on="true"] .snd-seal .si{stroke:var(--snd-seal-ink);opacity:.55}
+#snd[data-on="true"] .snd-seal text{fill:var(--snd-seal-ink)}
+.snd-panel{position:absolute;top:calc(100% + 8px);right:0;z-index:60;width:min(280px,calc(100vw - 32px));background:var(--paper);color:var(--ink);
+  border:1px solid var(--rule);border-radius:4px;box-shadow:0 10px 30px var(--snd-shadow);padding:14px 14px 12px;text-align:left;display:flex;flex-direction:column;gap:4px}
+.snd-h{margin:0 0 4px;font-family:var(--f-display);font-weight:700;font-size:1rem;letter-spacing:.12em}
+.snd-opt{position:relative;display:grid;grid-template-columns:20px 1fr;column-gap:12px;align-items:center;padding:7px 6px;border-radius:3px;cursor:pointer}
+.snd-opt:hover{background:var(--paper-2)}
+.snd-opt input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.snd-box{width:18px;height:18px;border:1.6px solid var(--ink);border-radius:2px;display:grid;place-items:center;grid-row:span 2}
+.snd-box svg{width:13px;height:13px;opacity:0;transition:opacity .12s}
+.snd-box path{fill:none;stroke:var(--snd-seal);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.snd-opt input:checked + .snd-box svg{opacity:1}
+.snd-opt input:focus-visible + .snd-box{outline:2px solid var(--snd-seal);outline-offset:2px}
+.snd-l{font-size:.95rem;font-weight:500}
+.snd-s{grid-column:2;font-size:.76rem;color:var(--ink-soft)}
+.snd-note{margin:6px 0 0;padding-top:9px;border-top:1px dashed var(--rule);font-size:.76rem;color:var(--ink-soft);line-height:1.6}
+@media (max-width:560px){.snd-seal{width:28px;height:28px}#app header{position:relative}#app header #snd{position:absolute;top:2px;right:0}}
+@media (prefers-reduced-motion: reduce){.snd-seal,.snd-box svg{transition:none}}
+</style>
 <div class="app" id="app">
   <header>
     <div class="brand"><h1 class="logo-h"><span class="sr">回愿</span></h1><span class="case">第一案 · 芦坪添丁</span></div>
@@ -1468,6 +1506,114 @@ function showMenu(fade){const m=$('#menu');if(!m)return;m.classList.toggle('fade
   </div></div>`;
   m.hidden=false;document.body.classList.add('in-menu');document.documentElement.classList.add('in-menu');const b=m.querySelector('.btn.primary');if(b)b.focus()}
 function hideMenu(){const m=$('#menu');if(m)m.hidden=true;document.body.classList.remove('in-menu');document.documentElement.classList.remove('in-menu')}
+/* ================= 声音：开关与背景音乐（10-29） ================= */
+/* 音乐是随页面发布的单独文件 audio/*.mp3，用到时才加载。默认不出声：玩家在「声」印面板里勾选「音乐」那一下，浏览器才允许播放。
+   每首都是剪好的无缝循环，循环长度按 48 kHz 采样数写死；浏览器解码 MP3 若在开头多出编码延迟，自动扣掉。
+   换场景交叉淡入淡出 1.5 秒，同一首曲子跨场景不重新开始；收录演出期间压到三成；「按住偿付」时随按压淡出。 */
+const SND_SR=48000;
+const SND_T={
+  title:{f:'audio/BGM-title.mp3',n:3552379},
+  city:{f:'audio/BGM-city.mp3',n:3640930},
+  field:{f:'audio/BGM-field.mp3',n:5047684},
+  shrine:{f:'audio/BGM-shrine.mp3',n:2796636},
+  wish:{f:'audio/BGM-wish.mp3',n:2921397},
+  leave_w:{f:'audio/BGM-leave_wished.mp3',n:2821398},
+  leave_n:{f:'audio/BGM-leave_notwished.mp3',n:2785659}
+};
+const SND_SCENE={P1:'city',P2:'city',S1:'field',S1b:null,S2:'field',S3:'field',S4:'field',S6:'shrine',S7:'wish',S7D:'leave',S8:'city'};
+const snd={music:false,sfx:false,ctx:null,bus:null,duck:null,hold:null,cur:null,want:null,tok:0,cache:{}};
+function sndInMenu(){return document.documentElement.classList.contains('in-menu')}
+function sndWant(){
+  if(sndInMenu())return 'title';
+  const s=state.scene;let k=SND_SCENE[s];if(k===undefined)k=null;
+  if(s==='S7'&&state.wish==='wish')k=null;            /* 偿付走完：风停了，门带上了，这一场之后安静 */
+  if(k==='leave')k=state.wish==='wish'?'leave_w':'leave_n';
+  return k}
+async function sndEnsure(){
+  if(!snd.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
+    const c=snd.ctx=new AC();snd.bus=c.createGain();snd.duck=c.createGain();snd.hold=c.createGain();
+    snd.bus.gain.value=0;snd.duck.gain.value=document.body.classList.contains('xy-on')?.3:1;
+    snd.duck.connect(snd.hold);snd.hold.connect(snd.bus);snd.bus.connect(c.destination)}
+  if(snd.ctx.state==='suspended'){try{await snd.ctx.resume()}catch(_){}}
+  return true}
+function sndRamp(param,to,t){const now=snd.ctx.currentTime;param.cancelScheduledValues(now);param.setValueAtTime(param.value,now);param.linearRampToValueAtTime(to,now+t)}
+function sndLead(buf,n){                              /* 解码后开头多出的编码延迟（秒） */
+  if(buf.duration-n/SND_SR<0.008)return 0;
+  const d=buf.getChannelData(0),lim=Math.floor(.06*buf.sampleRate);let i=0;while(i<lim&&Math.abs(d[i])<1e-3)i++;
+  const s=i/buf.sampleRate;return(s>=.015&&s<=.035)?s:1105/SND_SR}
+function sndLoad(k){
+  if(!snd.cache[k])snd.cache[k]=fetch(SND_T[k].f).then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer()})
+    .then(ab=>new Promise((res,rej)=>snd.ctx.decodeAudioData(ab,res,rej))).then(buf=>({buf,lead:sndLead(buf,SND_T[k].n)}))
+    .catch(e=>{delete snd.cache[k];throw e});
+  return snd.cache[k]}
+function sndFadeOut(c,t){if(!c)return;const now=snd.ctx.currentTime;c.g.gain.cancelScheduledValues(now);c.g.gain.setValueAtTime(c.g.gain.value,now);
+  c.g.gain.linearRampToValueAtTime(0,now+t);try{c.src.stop(now+t+.05)}catch(_){}}
+async function sndPlay(k,fade){
+  const my=++snd.tok;snd.want=k;let got;
+  try{got=await sndLoad(k)}catch(e){if(my===snd.tok)snd.want=null;return}
+  if(my!==snd.tok||!snd.music)return;
+  const c=snd.ctx,now=c.currentTime,len=SND_T[k].n/SND_SR;
+  if(snd.hold.gain.value<.999){snd.hold.gain.cancelScheduledValues(now);snd.hold.gain.setValueAtTime(1,now)}
+  const g=c.createGain();g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(1,now+fade);g.connect(snd.duck);
+  const src=c.createBufferSource();src.buffer=got.buf;src.loop=true;src.loopStart=got.lead;src.loopEnd=got.lead+len;src.connect(g);src.start(now,got.lead);
+  if(snd.cur)sndFadeOut(snd.cur,snd.hold.gain.value<.05?.05:fade);
+  snd.cur={k,src,g}}
+function sndStop(fade){snd.tok++;snd.want=null;if(!snd.cur||!snd.ctx)return;
+  const silent=snd.hold.gain.value<.05;sndFadeOut(snd.cur,silent?.05:fade);snd.cur=null;
+  if(silent)setTimeout(()=>{if(!snd.cur){const now=snd.ctx.currentTime;snd.hold.gain.cancelScheduledValues(now);snd.hold.gain.setValueAtTime(1,now)}},200)}
+function sndSync(){if(!snd.music||!snd.ctx)return;const k=sndWant();
+  if(k===snd.want)return;
+  if(!k){sndStop(1.5);return}
+  sndPlay(k,1.5)}
+
+/* —— 开关界面 —— */
+function sndBuild(){
+  const w=document.createElement('div');w.id='snd';w.dataset.on='false';
+  w.innerHTML=`<button class="snd-cap" type="button" id="sndCap">开启声音</button>
+    <button class="snd-seal" type="button" id="sndBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="sndPanel" title="声音">
+      <svg viewBox="0 0 44 44" aria-hidden="true"><rect class="sf" x="3" y="3" width="38" height="38" rx="3"/><rect class="si" x="7" y="7" width="30" height="30" rx="1.5"/><text x="22" y="30.5" text-anchor="middle">声</text></svg>
+      <span class="sr">声音设置</span></button>
+    <div class="snd-panel" id="sndPanel" role="dialog" aria-label="声音" hidden>
+      <p class="snd-h">声音</p>
+      <label class="snd-opt" for="sndMusic"><input type="checkbox" id="sndMusic"><span class="snd-box"><svg viewBox="0 0 14 14"><path d="M2 7.5 5.6 11 12 3"/></svg></span><span class="snd-l">音乐</span><span class="snd-s">各场景的背景音乐</span></label>
+      <label class="snd-opt" for="sndSfx"><input type="checkbox" id="sndSfx"><span class="snd-box"><svg viewBox="0 0 14 14"><path d="M2 7.5 5.6 11 12 3"/></svg></span><span class="snd-l">音效</span><span class="snd-s" id="sndSfxSub">翻页、盖章、脚步等</span></label>
+      <p class="snd-note">默认都不勾选。浏览器要等你点过一下才允许出声，所以在这里自己打开。</p>
+    </div>`;
+  const btn=w.querySelector('#sndBtn'),pan=w.querySelector('#sndPanel');
+  const open=o=>{pan.hidden=!o;btn.setAttribute('aria-expanded',String(o))};
+  btn.addEventListener('click',e=>{e.stopPropagation();open(pan.hidden)});
+  w.querySelector('#sndCap').addEventListener('click',e=>{e.stopPropagation();open(pan.hidden)});
+  document.addEventListener('click',e=>{if(!pan.hidden&&!w.contains(e.target))open(false)});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pan.hidden){open(false);btn.focus()}});
+  w.querySelector('#sndMusic').addEventListener('change',async e=>{
+    snd.music=e.target.checked;sndUi();
+    if(snd.music){if(!(await sndEnsure()))return;sndRamp(snd.bus.gain,1,.3);snd.want=null;sndSync()}
+    else if(snd.ctx){sndRamp(snd.bus.gain,0,.3);sndStop(.3)}});
+  w.querySelector('#sndSfx').addEventListener('change',async e=>{snd.sfx=e.target.checked;if(snd.sfx)await sndEnsure();sndUi()});
+  return w}
+function sndUi(){const w=document.getElementById('snd');if(!w)return;
+  w.dataset.on=String(snd.music||snd.sfx);
+  w.querySelector('#sndCap').textContent=(snd.music||snd.sfx)?'声音已开':'开启声音';
+  w.querySelector('#sndSfxSub').textContent=snd.sfx?'已开启（音效素材制作中）':'翻页、盖章、脚步等'}
+function sndPlace(){
+  const w=document.getElementById('snd')||sndBuild();const inMenu=sndInMenu();
+  const host=inMenu?document.getElementById('menu'):document.querySelector('#app header .meta');if(!host)return;
+  if(w.parentNode!==host)host.appendChild(w);
+  w.classList.toggle('snd--menu',inMenu);
+  const pan=w.querySelector('#sndPanel');pan.hidden=true;w.querySelector('#sndBtn').setAttribute('aria-expanded','false');sndUi()}
+
+/* —— 接到原有流程上 —— */
+const _sndRender=render;render=function(){_sndRender.apply(this,arguments);sndPlace();sndSync()};
+const _sndShowMenu=showMenu;showMenu=function(){_sndShowMenu.apply(this,arguments);sndPlace();sndSync()};
+const _sndHideMenu=hideMenu;hideMenu=function(){_sndHideMenu.apply(this,arguments);sndPlace();sndSync()};
+/* 收录演出期间压到三成 */
+new MutationObserver(()=>{if(snd.ctx)sndRamp(snd.duck.gain,document.body.classList.contains('xy-on')?.3:1,.7)}).observe(document.body,{attributes:true,attributeFilter:['class']});
+/* 「按住偿付」：按住时音乐随进度淡出（约 3.6 秒），没走完就松手则淡回 */
+function sndHoldOn(e){if(!snd.ctx||!snd.cur||snd.cur.k!=='wish')return;if(e.type==='keydown'&&e.key!==' '&&e.key!=='Enter')return;
+  if(!e.target.closest||!e.target.closest('#holdBtn'))return;sndRamp(snd.hold.gain,0,3.6)}
+function sndHoldOff(){if(!snd.ctx||snd.hold.gain.value>.999)return;setTimeout(()=>{if(state.wish!=='wish'&&snd.cur)sndRamp(snd.hold.gain,1,1.2)},60)}
+document.addEventListener('pointerdown',sndHoldOn,true);document.addEventListener('keydown',sndHoldOn,true);
+['pointerup','pointercancel','keyup'].forEach(t=>document.addEventListener(t,sndHoldOff,true));
 if(window.claude&&window.claude.hot&&window.claude.hot.snapshot)window.claude.hot.snapshot(()=>({state}));
 window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
 /* ================= 下愿：首次收录演出 + 演练「一盏灯」 ================= */
